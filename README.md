@@ -1,7 +1,7 @@
 # concourse-k8s-cleaner
 Provides a Kubernetes CronJob to clean up stalled workers of concourse that are built using helm stable/concourse
 
-### WIP
+### **WIP**
 
 ## Genesis
 Inspired by Concourse, Helm Chart and SRE oxygen-mask
@@ -13,7 +13,7 @@ https://github.com/helm/charts/tree/master/stable/concourse
 https://github.com/concourse/oxygen-mask
 
 ## Defaults
-Runs every 10 minutes (this can be changed in cron syntax in K*SConcourseCronJob.yaml)
+Runs every 10 minutes (this can be changed in cron syntax in K8SConcourseCronJob.yaml)
 
 Requires secrets to be set for cron container to access concourse with fly and run fly worker 
   atc_url: http://localhost
