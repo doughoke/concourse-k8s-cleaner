@@ -1,0 +1,51 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: concourse-k8s-cleaner-cron
+spec:
+  schedule: "*/10 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: concourse-k8s-cleaner
+            image: concourse/atc-ci
+            args:
+              - /bin/bash 
+              - -c 
+              - set -e && fly -t fixer login -c ${ATC_URL} -n ${CONCOURSE_TEAM} -u ${CONCOURSE_USER} -p ${CONCOURSE_PWD} -k &&
+              - fly -t fixer sync &&
+              - echo "---Listing healthy workers---" &&
+              - fly -t fixer workers | grep -v stalled | awk '{print $1}' &&
+              - echo "---Checking for stalled workers---" &&
+              - fly -t fixer workers | grep stalled | awk '{ print $1 }' &&
+              - fly -t fixer workers | grep stalled | awk '{ system("./fly -t fixer prune-worker -w " $1 " && kubectl delete pod " $1 " -n ${K8S_CONCOURSE_NAMESPACE}") }' &&
+              - echo "completed health check"
+            env:
+            - name: ATC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: concourse-k8s-cleaner-secret
+                  key: atc_url
+            - name: CONCOURSE_TEAM
+              valueFrom:
+                secretKeyRef:
+                  name: concourse-k8s-cleaner-secret
+                  key: concourse_team
+            - name: CONCOURSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: concourse-k8s-cleaner-secret
+                  key: concourse_user
+            - name: CONCOURSE_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: concourse-k8s-cleaner-secret
+                  key: concourse_pwd
+            - name: K8S_CONCOURSE_NAMESPACE
+              valueFrom:
+                secretKeyRef:
+                  name: concourse-k8s-cleaner-secret
+                  key: k8s_concourse_namespace
+          restartPolicy: OnFailure
