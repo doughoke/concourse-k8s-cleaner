@@ -3,7 +3,8 @@ kind: CronJob
 metadata:
   name: concourse-k8s-cleaner-cron
 spec:
-  schedule: "*/10 * * * *"
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
@@ -11,17 +12,10 @@ spec:
           containers:
           - name: concourse-k8s-cleaner
             image: concourse/atc-ci
-            args:
+            args: 
               - /bin/bash 
               - -c 
-              - set -e && fly -t fixer login -c ${ATC_URL} -n ${CONCOURSE_TEAM} -u ${CONCOURSE_USER} -p ${CONCOURSE_PWD} -k &&
-              - fly -t fixer sync &&
-              - echo "---Listing healthy workers---" &&
-              - fly -t fixer workers | grep -v stalled | awk '{print $1}' &&
-              - echo "---Checking for stalled workers---" &&
-              - fly -t fixer workers | grep stalled | awk '{ print $1 }' &&
-              - fly -t fixer workers | grep stalled | awk '{ system("./fly -t fixer prune-worker -w " $1 " && kubectl delete pod " $1 " -n ${K8S_CONCOURSE_NAMESPACE}") }' &&
-              - echo "completed health check"
+              - set -e && curl "${ATC_URL}/api/v1/cli?arch=amd64&platform=linux" --output /tmp/fly && mv /tmp/fly /usr/bin/fly && chmod +x /usr/bin/fly && fly -t fixer login -c ${ATC_URL} -n ${CONCOURSE_TEAM} -u ${CONCOURSE_USER} -p ${CONCOURSE_PWD} -k && fly -t fixer sync && echo "---Listing healthy workers---" && fly -t fixer workers | grep -v stalled | awk '{print $1}' && echo "---Checking for stalled workers---" && fly -t fixer workers | grep stalled | awk '{ print $1 }' && fly -t fixer workers | grep stalled | awk '{ system("./fly -t fixer prune-worker -w " $1 " && kubectl delete pod " $1 " -n ${K8S_CONCOURSE_NAMESPACE}") }' && echo "completed health check"
             env:
             - name: ATC_URL
               valueFrom:
